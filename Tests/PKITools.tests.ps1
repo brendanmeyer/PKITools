@@ -25,7 +25,7 @@ InModuleScope 'PKITools' {
         }
       }
     }
-    Describe 'Get-CertificatAuthority' {
+    Describe 'Get-CertificateAuthority' {
         Mock Get-Domain {
             $properties = @{
                 'Name' = 'company.pri'
@@ -55,52 +55,52 @@ InModuleScope 'PKITools' {
         }
         Context 'Running without arguments - With Domain and CA entries' {
             It 'runs without errors' {
-                {Get-CertificatAuthority} | Should Not Throw
+                {Get-CertificateAuthority} | Should Not Throw
             }
             It 'Returns a value when content exists' {
-                (Get-CertificatAuthority).count | Should Not BeNullOrEmpty
+                (Get-CertificateAuthority).count | Should Not BeNullOrEmpty
             }
         }
         Context 'Runing without arguments - No domain' {
             Mock Get-Domain  { }
             It 'Throws when domain not found' {
-                {Get-CertificatAuthority} | Should Throw 
+                {Get-CertificateAuthority} | Should Throw 
             }
         }
         Context 'Runing without arguments - No CA in Domain' {
             Mock Get-ADPKIEnrollmentServers { }
             It 'does not return anything' {
-                Get-CertificatAuthority| Should BeNullOrEmpty 
+                Get-CertificateAuthority| Should BeNullOrEmpty 
             }
         }
         Context 'Running with Single Arguments' {
             It 'return null or empty when nothing found' {
-                Get-CertificatAuthority -CAName 'doesnotexist' | Should BeNullOrEmpty 
-                Get-CertificatAuthority -ComputerName 'doesnotexist' | Should BeNullOrEmpty 
+                Get-CertificateAuthority -CAName 'doesnotexist' | Should BeNullOrEmpty 
+                Get-CertificateAuthority -ComputerName 'doesnotexist' | Should BeNullOrEmpty 
             }
             It 'Does not throw when nothing found' {
-                { Get-CertificatAuthority -CAName 'doesnotexist' } | Should Not Throw
-                { Get-CertificatAuthority -ComputerName 'doesnotexist' } | Should Not Throw 
+                { Get-CertificateAuthority -CAName 'doesnotexist' } | Should Not Throw
+                { Get-CertificateAuthority -ComputerName 'doesnotexist' } | Should Not Throw 
             }
             It 'Finds and returns a value' {
-                (Get-CertificatAuthority -CAName 'company-CA1') | Should Not BeNullOrEmpty
-                (Get-CertificatAuthority -ComputerName 'ca1.company.pri') | Should Not BeNullOrEmpty
+                (Get-CertificateAuthority -CAName 'company-CA1') | Should Not BeNullOrEmpty
+                (Get-CertificateAuthority -ComputerName 'ca1.company.pri') | Should Not BeNullOrEmpty
             }
             It -name 'Retuns correct CA Name' {
-                (Get-CertificatAuthority -CAName 'company-CA1').name | Should be 'company-CA1'
-                (Get-CertificatAuthority -CAName 'company-CA1').name | Should not be 'company-CA2'
+                (Get-CertificateAuthority -CAName 'company-CA1').name | Should be 'company-CA1'
+                (Get-CertificateAuthority -CAName 'company-CA1').name | Should not be 'company-CA2'
             }
             It -name 'Retuns correct DNS Host Name' -test {
-                (Get-CertificatAuthority -ComputerName 'ca1.company.pri').DNSHostName | Should be 'ca1.company.pri'
-                (Get-CertificatAuthority -ComputerName 'ca1.company.pri').DNSHostName | Should not be 'ca2.company.pri'
+                (Get-CertificateAuthority -ComputerName 'ca1.company.pri').DNSHostName | Should be 'ca1.company.pri'
+                (Get-CertificateAuthority -ComputerName 'ca1.company.pri').DNSHostName | Should not be 'ca2.company.pri'
             }
         }
         Context -Name 'Running with Single Array Arguments' -Fixture {
             It -name 'Retuns multiple' -test {
-                (Get-CertificatAuthority -CAName 'company-CA1', 'company-CA2').count | Should be 2
+                (Get-CertificateAuthority -CAName 'company-CA1', 'company-CA2').count | Should be 2
             }
             It -name 'Retuns multiple' -test {
-                (Get-CertificatAuthority -CAName 'company-CA1', 'company-CA2').Name -contains 'company-CA1' | Should be $true
+                (Get-CertificateAuthority -CAName 'company-CA1', 'company-CA2').Name -contains 'company-CA1' | Should be $true
             }
         }
     }
@@ -112,14 +112,14 @@ InModuleScope 'PKITools' {
             return New-Object -TypeName PSObject -Property $properties
         }
 
-      Context 'When no Value Returned by Get-CertificatAuthority' {
-        Mock Get-CertificatAuthority { }
+      Context 'When no Value Returned by Get-CertificateAuthority' {
+        Mock Get-CertificateAuthority { }
         It 'does not return anything' {
           get-CaLocationString | Should BeNullOrEmpty 
         }
       }
-      Context 'When Single Values Retuned by Get-CertificatAuthority' {
-         Mock Get-CertificatAuthority {  
+      Context 'When Single Values Retuned by Get-CertificateAuthority' {
+         Mock Get-CertificateAuthority {  
             @{
                 'dNSHostName' = 'DC.company.pri'
                 'Name' = 'company.pri' 
@@ -133,8 +133,8 @@ InModuleScope 'PKITools' {
           get-CaLocationString | Should Be 'DC.company.pri\company.pri' 
         }
       }
-        Context 'When Multiple Values Retuned by Get-CertificatAuthority' {
-        Mock Get-CertificatAuthority { 
+        Context 'When Multiple Values Retuned by Get-CertificateAuthority' {
+        Mock Get-CertificateAuthority { 
              @(@{
                 'dNSHostName' = 'CA1.company.pri'
                 'Name' = 'MyCA1'

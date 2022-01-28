@@ -2,7 +2,7 @@
 Simple function to get certificate info from Active Directory Certificate Authority
 
 ## What it does
-Get-CertificatAuthority : Get the Active Directory object of the Certficate Authorities configured to issue certificates on a Domain. 
+Get-CertificateAuthority : Get the Active Directory object of the Certficate Authorities configured to issue certificates on a Domain. 
 
 Get-CaLocationString : Get the list of Certificate Authorities on the domain and output the Location Strings used to connect to them. Connection strings are in the form of Server\CAName 
 

@@ -1,65 +1,63 @@
-﻿function Get-IssuedCertificate 
+﻿function Get-IssuedCertificate
 {
     <#
-            .SYNOPSIS
-            Get Issued Certificate data from one or more certificate athorities. 
+        .SYNOPSIS
+        Get Issued Certificate data from one or more certificate athorities.
 
-            .DESCRIPTION
-            Can get various certificate fileds from the Certificate Authority database. Usfull for exporting certificates or checking what is about to expire
+        .DESCRIPTION
+        Can get various certificate fileds from the Certificate Authority database. Usfull for exporting certificates or checking what is about to expire
 
-            .PARAMETER ExpireInDays
-            Maximum number of days from now that a certificate will expire. (Default: 21900 = 60 years) Can be a negative numbe to check for recent expirations
+        .PARAMETER ExpireInDays
+        Maximum number of days from now that a certificate will expire. (Default: 21900 = 60 years) Can be a negative numbe to check for recent expirations
 
-            .PARAMETER CAlocation
-            Certificate Authority location string "computername\CAName" (Default gets location strings from Current Domain)
+        .PARAMETER CAlocation
+        Certificate Authority location string "computername\CAName" (Default gets location strings from Current Domain)
 
-            .PARAMETER Properties
-            Fields in the Certificate Authority Database to Export
+        .PARAMETER Properties
+        Fields in the Certificate Authority Database to Export
 
-            .PARAMETER CertificateTemplateOid
-            Filter on Certificate Template OID (use Get-CertificateTemplateOID)
+        .PARAMETER CertificateTemplateOid
+        Filter on Certificate Template OID (use Get-CertificateTemplateOID)
 
-            .PARAMETER CommonName
-            Filter by Issued Common Name
+        .PARAMETER CommonName
+        Filter by Issued Common Name
 
-            .EXAMPLE
-            Get-IssuedCertificate -ExpireInDays 14
-            Gets all Issued Certificates Expireing in the next two weeks
+        .EXAMPLE
+        Get-IssuedCertificate -ExpireInDays 14
+        Gets all Issued Certificates Expiring in the next two weeks
 
-            .EXAMPLE
-            Get-IssuedCertificate -ExpireInDays -7
-            Gets all Issued Certificates that Expired last week
+        .EXAMPLE
+        Get-IssuedCertificate -ExpireInDays -7
+        Gets all Issued Certificates that Expired last week
 
-            .EXAMPLE
-            Get-IssuedCertificate -CAlocation CA1\MyCA
-            Gets all Certificates Issued by CA1
+        .EXAMPLE
+        Get-IssuedCertificate -CAlocation CA1\MyCA
+        Gets all Certificates Issued by CA1
 
-            .EXAMPLE
-            Get-IssuedCertificate -Properties 'Issued Common Name', 'Certificate Hash'
-            Gets all Issued Certificates and outputs only the Common name and thumbprint
+        .EXAMPLE
+        Get-IssuedCertificate -Properties 'Issued Common Name', 'Certificate Hash'
+        Gets all Issued Certificates and outputs only the Common name and thumbprint
 
-            .EXAMPLE
-            Get-IssuedCertificate -CommonName S1, S2.contoso.com
-            Gets Certificats issued to S1 and S2.contoso.com
+        .EXAMPLE
+        Get-IssuedCertificate -CommonName S1, S2.contoso.com
+        Gets Certificats issued to S1 and S2.contoso.com
 
-            .EXAMPLE
-            $DSCCerts = Get-IssuedCertificate -CertificateTemplateOid (Get-CertificateTemplateOID -Name 'DSCTemplate') -Properties 'Issued Common Name', 'Binary Certificate' 
-            foreach ($cert in $DSCCerts)
-            {
-            set-content -path "c:\certs\$($cert.'Issued Common Name').cer" -Value $cert.'Binary Certificate' -Encoding Ascii
-            }
-            Get all certificates issued useing the DSCTemplate template and save them to the folder c:\certs named for the Common name of the certificate
-
+        .EXAMPLE
+        $DSCCerts = Get-IssuedCertificate -CertificateTemplateOid (Get-CertificateTemplateOID -Name 'DSCTemplate') -Properties 'Issued Common Name', 'Binary Certificate' 
+        foreach ($cert in $DSCCerts)
+        {
+        set-content -path "c:\certs\$($cert.'Issued Common Name').cer" -Value $cert.'Binary Certificate' -Encoding Ascii
+        }
+        Get all certificates issued useing the DSCTemplate template and save them to the folder c:\certs named for the Common name of the certificate
     #>
 
  
     [CmdletBinding()]
     Param (
-        
         # Maximum number of days from now that a certificate will expire. (Default: 21900 = 60 years)
         [Int]
         $ExpireInDays = 21900,
-        
+
         # Certificate Authority location string "computername\CAName" (Default gets location strings from Current Domain)
         [String[]]
         $CAlocation = (Get-CaLocationString),
@@ -67,17 +65,18 @@
         # Fields in the Certificate Authority Database to Export
         [String[]]
         $Properties = (
-            'Issued Common Name', 
-            'Certificate Expiration Date', 
-            'Certificate Effective Date', 
-            'Certificate Template', 
+            'Issued Common Name',
+            'Certificate Expiration Date',
+            'Certificate Effective Date',
+            'Certificate Template',
             #'Issued Email Address',
-            'Issued Request ID', 
-            'Certificate Hash', 
+            'Issued Request ID',
+            'Certificate Hash',
             #'Request Disposition',
-            'Request Disposition Message', 
-            'Requester Name', 
-        'Binary Certificate' ),
+            'Request Disposition Message',
+            'Requester Name',
+            'Binary Certificate'
+        ),
 
         # Filter on Certificate Template OID (use Get-CertificateTemplateOID)
         [AllowNull()]
@@ -93,26 +92,19 @@
         [AllowNull()]
         [System.Management.Automation.Credential()][PSCredential]
         $Credential
-
-    ) 
-
-    
-
+    )
     #endregion
 
-    
-    $ScriptBlock = { 
-        try 
-        {
+    $ScriptBlock = {
+        try {
             $CaView = New-Object -ComObject CertificateAuthority.View
         }
-        catch 
-        {
+        catch {
             throw "Unable to create Certificate Authority View. $ENV:COMPUTERNAME Not not have ADSC Installed"
         }
         $null = $CaView.OpenConnection($using:Location)
         $CaView.SetResultColumnCount($using:Properties.Count)
-    
+
         #region SetOutput Colum
         foreach ($item in $using:Properties)
         {
@@ -125,17 +117,17 @@
         $CVR_SEEK_EQ = 1
         $CVR_SEEK_LT = 2
         $CVR_SEEK_GT = 16
-    
+
         #region filter expiration Date
         $index = $CaView.GetColumnIndex($false, 'Certificate Expiration Date')
         $now = Get-Date
         $expirationdate = $now.AddDays($using:ExpireInDays)
         if ($using:ExpireInDays -gt 0)
-        { 
+        {
             $CaView.SetRestriction($index,$CVR_SEEK_GT,0,$now)
             $CaView.SetRestriction($index,$CVR_SEEK_LT,0,$expirationdate)
         }
-        else 
+        else
         {
             $CaView.SetRestriction($index,$CVR_SEEK_LT,0,$now)
             $CaView.SetRestriction($index,$CVR_SEEK_GT,0,$expirationdate)
@@ -166,16 +158,16 @@
         #endregion
 
         #region output each retuned row
-        $CV_OUT_BASE64HEADER = 0 
-        $CV_OUT_BASE64 = 1 
-        $RowObj = $CaView.OpenView() 
+        $CV_OUT_BASE64HEADER = 0
+        $CV_OUT_BASE64 = 1
+        $RowObj = $CaView.OpenView()
 
         while ($RowObj.Next() -ne -1)
         {
             $Cert = New-Object -TypeName PsObject
             $ColObj = $RowObj.EnumCertViewColumn()
             $null = $ColObj.Next()
-            do 
+            do
             {
                 $displayName = $ColObj.GetDisplayName()
                 # format Binary Certificate in a savable format.
@@ -187,24 +179,23 @@
                 {
                     $Cert | Add-Member -MemberType NoteProperty -Name $displayName -Value $($ColObj.GetValue($CV_OUT_BASE64)) -Force
                 }
-            }
-            until ($ColObj.Next() -eq -1)
+            } until ($ColObj.Next() -eq -1)
             Clear-Variable -Name ColObj
 
             $Cert
         }
         #endregion
     }
-    
-    foreach ($Location in $CAlocation) 
+
+    foreach ($Location in $CAlocation)
     {
         $ComputerName = $Location -split '\\' | Select-Object -First 1
-        
+
         $Params = @{
             'ScriptBlock' = $ScriptBlock
             'ComputerName' = $ComputerName
         }
-        if ($Credential) 
+        if ($Credential)
         {
             $Params.Add('Credential',$Credential)
         }

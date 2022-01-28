@@ -1,18 +1,18 @@
-﻿function Get-CertificatAuthority
+﻿function Get-CertificateAuthority
 {
 <#
-        .Synopsis
-        Get list of Certificate Authorities from Active directory
-        .DESCRIPTION
-        Queries Active Directory for Certificate Authorities with Enrollment Services enabled
-        .EXAMPLE
-        Get-CertificatAuthority 
-        .EXAMPLE
-        Get-CertificatAuthority -CaName 'MyCA'
-        .EXAMPLE
-        Get-CertificatAuthority -ComputerName 'CA01' -Domain 'Contoso.com'
-        .OUTPUTS
-        System.DirectoryServices.DirectoryEntry
+    .Synopsis
+    Get list of Certificate Authorities from Active directory
+    .DESCRIPTION
+    Queries Active Directory for Certificate Authorities with Enrollment Services enabled
+    .EXAMPLE
+    Get-CertificateAuthority
+    .EXAMPLE
+    Get-CertificateAuthority -CaName 'MyCA'
+    .EXAMPLE
+    Get-CertificateAuthority -ComputerName 'CA01' -Domain 'Contoso.com'
+    .OUTPUTS
+    System.DirectoryServices.DirectoryEntry
 #>
     [CmdletBinding()]
     [OutputType([adsi])]
@@ -27,12 +27,13 @@
         $ComputerName = $null,
 
         # Domain to Search
+        [ValidateNotNullOrEmpty()]
         [String]
         $Domain = (Get-Domain).Name 
     )
     Write-Verbose $Domain
-    ## If the DN path does not exist error message set as valid object 
-    $CaEnrolmentServices = Get-ADPKIEnrollmentServers $Domain 
+    ## If the DN path does not exist error message set as valid object
+    $CaEnrolmentServices = Get-ADPKIEnrollmentServers -Domain $Domain
     $CAList = $CaEnrolmentServices.Children
 
     if($CAName)
@@ -42,20 +43,20 @@
     if ($ComputerName)
     {
         # Make FQDN
-        [Collections.ArrayList]$List = @() 
-        foreach ($Computer in $ComputerName) 
-        { 
-            if ($Computer -like "*.$Domain") 
+        [Collections.ArrayList]$List = @()
+        foreach ($Computer in $ComputerName)
+        {
+            if ($Computer -like "*.$Domain")
             {
                 $null = $List.add($Computer)
-            } 
-            else 
+            }
+            else
             {
                 $null = $List.add("$($Computer).$Domain")
             }
         } # end foreach
         $CAList = $CAList | Where-Object -Property DNSHostName -In -Value $List
     }
-    
+
     $CAList
 }

@@ -6,7 +6,7 @@
             .DESCRIPTION
             Connects to LDAP and retrievs the OID of a given PKI template by template Common Name
             .EXAMPLE
-            Get-CertificateTemplateOID -Name 'DSCTemplate'
+            Get-CertificateTemplateOID -Name 'Workstation'
             .EXAMPLE
             Get-CertificateTemplateOID -Name 'DSCTemplate' -Domain contoso.com 
             .OUTPUTS
@@ -15,22 +15,23 @@
             This may require RSAT. 
     #>
 
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding()]
     [OutputType([String])]
     Param
     (
         # Name of the template
         [Parameter(Mandatory,HelpMessage = 'Name of the template')]
-        [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
-        [Alias('cn')] 
+        [Alias('cn')]
         [string]
         $Name,
 
         # Domain to search (defaults to curent machines domain)
+        [Parameter(Mandatory = $false, HelpMessage = 'The domain name')]
+        [ValidateNotNullOrEmpty()]
         [string]
         $Domain = (Get-Domain).name
     )
+
     (Get-ADCertificateTemplate -Domain $domain -TemplateName $Name ).'msPKI-Cert-Template-OID'
-    
 }
