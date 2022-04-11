@@ -1,5 +1,4 @@
-﻿function Get-IssuedCertificate
-{
+﻿function Get-IssuedCertificate {
     <#
         .SYNOPSIS
         Get Issued Certificate data from one or more certificate athorities.
@@ -72,7 +71,7 @@
             #'Issued Email Address',
             'Issued Request ID',
             'Certificate Hash',
-            #'Request Disposition',
+            'Request Disposition',
             'Request Disposition Message',
             'Requester Name',
             'Binary Certificate'
@@ -91,7 +90,11 @@
         # Credential to with permissions to query ADSC
         [AllowNull()]
         [System.Management.Automation.Credential()][PSCredential]
-        $Credential
+        $Credential,
+
+        # Include Expired Certificates
+        [Switch]
+        $IncludeExpired
     )
     #endregion
 
@@ -106,8 +109,7 @@
         $CaView.SetResultColumnCount($using:Properties.Count)
 
         #region SetOutput Colum
-        foreach ($item in $using:Properties)
-        {
+        foreach ($item in $using:Properties) {
             $index = $CaView.GetColumnIndex($false, $item)
             $CaView.SetResultColumn($index)
         }
@@ -122,37 +124,41 @@
         $index = $CaView.GetColumnIndex($false, 'Certificate Expiration Date')
         $now = Get-Date
         $expirationdate = $now.AddDays($using:ExpireInDays)
-        if ($using:ExpireInDays -gt 0)
-        {
-            $CaView.SetRestriction($index,$CVR_SEEK_GT,0,$now)
-            $CaView.SetRestriction($index,$CVR_SEEK_LT,0,$expirationdate)
-        }
-        else
-        {
-            $CaView.SetRestriction($index,$CVR_SEEK_LT,0,$now)
+        if ($using:ExpireInDays -gt 0) {
+            if (-not $using:IncludeExpired.IsPresent) {
+                $CaView.SetRestriction($index, $CVR_SEEK_GT, 0, $now)
+            }
+            $CaView.SetRestriction($index, $CVR_SEEK_LT, 0, $expirationdate)
+        } else {
+            if (-not $using:IncludeExpired.IsPresent) {
+                $CaView.SetRestriction($index,$CVR_SEEK_GT,0,$now)
+            }
             $CaView.SetRestriction($index,$CVR_SEEK_GT,0,$expirationdate)
         }
         #endregion filter expiration date
 
         #region Filter Template
-        if ($using:CertificateTemplateOid)
-        {
+        if ($using:CertificateTemplateOid) {
             $index = $CaView.GetColumnIndex($false, 'Certificate Template')
             $CaView.SetRestriction($index,$CVR_SEEK_EQ,0,$using:CertificateTemplateOid)
         }
         #endregion
 
         #region Filter Issued Common Name
-        if ($using:CommonName)
-        {
+        if ($using:CommonName) {
             $index = $CaView.GetColumnIndex($false, 'Issued Common Name')
             $CaView.SetRestriction($index,$CVR_SEEK_EQ,0,$using:CommonName)
         }
         #endregion
 
         #region Filter Only issued certificates
+        # 9 - pending for approval
+        # 15 - CA certificate renewal
+        # 16 - CA certificate chain
         # 20 - issued certificates
-        $CaView.SetRestriction($CaView.GetColumnIndex($false, 'Request Disposition'),$CVR_SEEK_EQ,0,20)
+        # 21 - revoked certificates
+        # all other - failed requests
+        #$CaView.SetRestriction($CaView.GetColumnIndex($false, 'Request Disposition'),$CVR_SEEK_EQ,0,20)
         #endregion
 
         #endregion
@@ -162,21 +168,16 @@
         $CV_OUT_BASE64 = 1
         $RowObj = $CaView.OpenView()
 
-        while ($RowObj.Next() -ne -1)
-        {
+        while ($RowObj.Next() -ne -1) {
             $Cert = New-Object -TypeName PsObject
             $ColObj = $RowObj.EnumCertViewColumn()
             $null = $ColObj.Next()
-            do
-            {
+            do {
                 $displayName = $ColObj.GetDisplayName()
                 # format Binary Certificate in a savable format.
-                if ($displayName -eq 'Binary Certificate') 
-                {
+                if ($displayName -eq 'Binary Certificate') {
                     $Cert | Add-Member -MemberType NoteProperty -Name $displayName -Value $($ColObj.GetValue($CV_OUT_BASE64HEADER)) -Force
-                }
-                else 
-                {
+                } else {
                     $Cert | Add-Member -MemberType NoteProperty -Name $displayName -Value $($ColObj.GetValue($CV_OUT_BASE64)) -Force
                 }
             } until ($ColObj.Next() -eq -1)
@@ -187,16 +188,14 @@
         #endregion
     }
 
-    foreach ($Location in $CAlocation)
-    {
+    foreach ($Location in $CAlocation) {
         $ComputerName = $Location -split '\\' | Select-Object -First 1
 
         $Params = @{
             'ScriptBlock' = $ScriptBlock
             'ComputerName' = $ComputerName
         }
-        if ($Credential)
-        {
+        if ($Credential) {
             $Params.Add('Credential',$Credential)
         }
         Invoke-Command @Params
